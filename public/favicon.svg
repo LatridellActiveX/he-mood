@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-label="Hé">
+  <rect width="16" height="16" rx="3" fill="#3D6358"/>
+  <defs>
+    <clipPath id="taiji">
+      <circle cx="8" cy="8" r="6"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#taiji)">
+    <rect x="2" y="2" width="12" height="12" fill="#F2EBE0"/>
+    <rect x="2" y="2" width="6" height="12" fill="#1C1914"/>
+    <circle cx="8" cy="5" r="3" fill="#1C1914"/>
+    <circle cx="8" cy="11" r="3" fill="#F2EBE0"/>
+    <circle cx="8" cy="5" r="1.5" fill="#F2EBE0"/>
+    <circle cx="8" cy="11" r="1.5" fill="#1C1914"/>
+  </g>
+</svg>
