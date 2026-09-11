@@ -94,6 +94,37 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
+    const client = await pool.connect();
+    try {
+      await client.query(
+        "CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+      );
+      const migrations = import.meta.glob("/migrations/*.sql", {
+        query: "?raw",
+        import: "default",
+        eager: true,
+      }) as Record<string, string>;
+      const applied = (await client.query("SELECT name FROM _migrations")).rows.map(
+        (r: { name: string }) => r.name,
+      );
+      for (const { name, path } of pendingMigrations(Object.keys(migrations), applied)) {
+        try {
+          await client.query("BEGIN");
+          await client.query(migrations[path]);
+          await client.query("INSERT INTO _migrations (name) VALUES ($1)", [name]);
+          await client.query("COMMIT");
+        } catch (err) {
+          try {
+            await client.query("ROLLBACK");
+          } catch {
+            // Connection already dead — keep the original error.
+          }
+          throw err;
+        }
+      }
+    } finally {
+      client.release();
+    }
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];

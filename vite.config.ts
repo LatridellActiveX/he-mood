@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
@@ -11,6 +11,26 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
+
+/**
+ * Merge `.grok/app-env.json` into `process.env` so `vite build` still sees
+ * `VITE_AUTH_ENABLED` when the sandbox wrapper isn't on the builder (Vercel).
+ * An explicit env var always wins.
+ */
+try {
+  const parsed = JSON.parse(
+    readFileSync(join(process.cwd(), ".grok/app-env.json"), "utf8"),
+  ) as Record<string, unknown>;
+  if (parsed && typeof parsed === "object") {
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!key.startsWith("VITE_")) continue;
+      if (typeof value !== "string") continue;
+      if (process.env[key] == null) process.env[key] = value;
+    }
+  }
+} catch {
+  // Deployed hosts inject VITE_* themselves.
+}
 
 /** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
 function hasGlobbedMigrations(root: string): boolean {
